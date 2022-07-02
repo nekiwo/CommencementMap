@@ -1,10 +1,10 @@
-const fs = require("fs")
+const fs = require("fs");
 const {createCanvas, loadImage} = require("canvas");
-const NodeGeocoder = require('node-geocoder');
+const NodeGeocoder = require("node-geocoder");
 
 // Render dimensions
-const renderWidth = 2580;
-const renderHeight = 1892;
+const renderWidth = 2560;
+const renderHeight = 2560;
 
 // Initiate canvas
 const canvas = createCanvas(renderWidth, renderHeight);
@@ -12,7 +12,7 @@ const ctx = canvas.getContext("2d");
 
 // Initiate geocodeer
 const geocoder = NodeGeocoder({
-    provider: 'openstreetmap'
+    provider: "openstreetmap"
 });
 
 // Background color
@@ -20,58 +20,75 @@ ctx.fillStyle = "#cccccc";
 ctx.fillRect(0, 0, renderWidth, renderHeight);
 
 // Load map
-loadImage("img/Mercator_Projection.svg.png").then(image => {
+
+loadImage("img/Mercator_Projection.png").then(image => {
+    /* Sources: 
+     * - https://commons.wikimedia.org/wiki/File:Mercator_Projection.svg
+     * - https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
+     * - https://tile.openstreetmap.org/0/0/0.png
+     */
     ctx.drawImage(image, 0, 0, renderWidth, renderHeight);
 
     // Scrape cities from PDF
-    let cities = [
-        ["Davis, California", 1],
-        ["New York, New York", 5],
-        ["Calgary, Canada", 3],
-        ["Beirut, Lebanon", 1]
-    ];
-
-    // Convert cities to coords
-    console.log("test1")
-    let coords = (asyn)
     
+    fs.readFile("pdf/c2020.txt", "utf8", async (err, data) => {
+        if (err) throw err;
 
-    for (const cityData of cities) {
-        geocoder.geocode(cityData[0]).then(res => {
-            coords.push([[res[0].latitude, res[0].longitude], cityData[1]]);
-            console.log("test2")
+        let cities = {};
+        const citiesRaw = data.split(/[•.\r\n]/).filter(s => s.indexOf(",") > -1).map(s => s.slice(1));
+        console.log(citiesRaw.length)
+        let t = 0
+        citiesRaw.forEach(cityName => {
+            t++
+            if (t < 1500) {
+                if (cities[cityName] != undefined) {
+                    cities[cityName]++;
+                } else {
+                    cities[cityName] = 1;
+                }
+            }
         });
-    }
-    console.log("test3")
+        t = 0
 
-    // Convert coords to points
-    let points = [];
-    coords.forEach(coordData => {
-        const lat = coordData[0][0];
-        const lon = coordData[0][1];
+        // Convert cities to coords
+        let coords = [];
+        for (const key in cities) {
+            let res = await geocoder.geocode(key);
+            if (res[0] != undefined) {
+                coords.push([[res[0].latitude, res[0].longitude], cities[key]]);
+            }
+            t++
+            console.log(t)
+        }
 
-        const zoom = 1;
+        // Convert coords to points
+        let points = [];
+        coords.forEach(coordData => {
+            const lat = coordData[0][0];
+            const lon = coordData[0][1];
 
-        const rad = deg => deg * (Math.PI / 180);
-        const x = (renderWidth / (2 * Math.PI)) * Math.pow(2, zoom) * (rad(lon) + Math.PI);
-        const y = (renderHeight / (2 * Math.PI)) * Math.pow(2, zoom) * (Math.PI - Math.log(Math.tan(math.PI / 4 + rad(lat) / 2)));
+            const zoom = 0;
 
-        console.log(lat, lon, x, y)
+            const rad = deg => deg * (Math.PI / 180);
+            const x = (renderWidth / (2 * Math.PI)) * Math.pow(2, zoom) * (rad(lon) + Math.PI);
+            const y = (renderHeight / (2 * Math.PI)) * Math.pow(2, zoom) * (Math.PI - Math.log(Math.tan(Math.PI / 4 + rad(lat) / 2)));
 
-        points.push([[x, y], coordData[1]]);
+            points.push([[x, y], coordData[1]]);
+        });
+
+
+        // Plot points
+        points.forEach(pointData => {
+            const point = pointData[0];
+            const size = pointData[1];
+
+            ctx.beginPath();
+            ctx.arc(point[0], point[1], size * (renderWidth / 500), 0, 2 * Math.PI, false);
+            ctx.fillStyle = "#ff5c5c";
+            ctx.fill();
+        });
+
+        fs.writeFileSync("result/image.png", canvas.toBuffer("image/png"));
+        console.log("Done!");
     });
-
-
-    // Plot points
-    points.forEach(pointData => {
-        const point = pointData[0];
-        const size = pointData[1];
-
-        ctx.beginPath();
-        ctx.arc(point[0], point[1], size * (renderWidth / 300), 0, 2 * Math.PI, false);
-        ctx.fillStyle = "#ff5c5c";
-        ctx.fill();
-    });
-
-    fs.writeFileSync("./image.png", canvas.toBuffer("image/png"));
 });
