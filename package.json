@@ -1,0 +1,23 @@
+{
+  "name": "commencementmap",
+  "version": "1.0.0",
+  "description": "Scraping Stanford's commencement data for a map of graduates",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nekiwo/CommencementMap.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nekiwo/CommencementMap/issues"
+  },
+  "homepage": "https://github.com/nekiwo/CommencementMap#readme",
+  "dependencies": {
+    "canvas": "^2.9.3",
+    "node-geocoder": "^4.1.0"
+  }
+}
