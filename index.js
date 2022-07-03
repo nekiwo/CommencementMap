@@ -11,12 +11,6 @@ const maxEntries = 1500; // Max city entries (out of ~5900)
 const canvas = createCanvas(renderWidth, renderHeight);
 const ctx = canvas.getContext("2d");
 
-// Initiate geocodeer
-const geocoder = NodeGeocoder({
-    provider: "opencage",
-    apiKey: await fs.promises.readFile("apikey.txt", "utf8")
-});
-
 // Load map
 loadImage("img/Mercator_Projection.png").then(image => {
     /* Sources: 
@@ -31,7 +25,17 @@ loadImage("img/Mercator_Projection.png").then(image => {
         if (err) throw err;
 
         let cities = {};
-        const citiesRaw = data.split(/[•.\r\n]/).filter(s => s.indexOf(",") > -1).map(s => s.slice(1)).slice(0, maxEntries);
+        const citiesRaw = data
+            .split(/[•.\r\n]/)
+            .filter(s => 
+                s.indexOf(",") > -1 && 
+                s.indexOf(":") === -1 &&
+                s[0] === " " &&
+                s.length < 30 && 
+                s.slice(-1) != ",")
+            .map(s => s.slice(1))
+            .slice(0, maxEntries);
+
         citiesRaw.forEach(cityName => {
             if (cities[cityName] != undefined) {
                 cities[cityName]++;
@@ -40,16 +44,24 @@ loadImage("img/Mercator_Projection.png").then(image => {
             }
         });
 
+        // Initiate geocoder
+        const geocoder = NodeGeocoder({
+            provider: "tomtom", //"opencage", //"openstreetmap",
+            apiKey: await fs.promises.readFile("apikey.txt", "utf8")
+        });
+
         // Convert cities to coords
         let coords = [];
-        let i = 0
         for (const key in cities) {
-            let res = await geocoder.geocode(key);
-            if (res[0] != undefined) {
-                coords.push([[res[0].latitude, res[0].longitude], cities[key]]);
+            try {
+                let res = await geocoder.geocode(key);
+                if (res[0] != undefined) {
+                    coords.push([[res[0].latitude, res[0].longitude], cities[key]]);
+                    console.log([res[0].latitude, res[0].longitude])
+                }
+            } catch (err) {
+                console.log(err);
             }
-            i++
-            console.log(i)
         }
 
         // Convert coords to points
@@ -74,7 +86,7 @@ loadImage("img/Mercator_Projection.png").then(image => {
             const size = pointData[1];
 
             ctx.beginPath();
-            ctx.arc(point[0], point[1], size * (renderWidth / 750), 0, 2 * Math.PI, false);
+            ctx.arc(point[0], point[1], size * (renderWidth / 1000), 0, 2 * Math.PI, false);
             ctx.fillStyle = "rgba(255, 92, 92, 0.5)"//"#ff5c5c";
             ctx.fill();
         });
