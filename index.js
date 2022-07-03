@@ -15,12 +15,7 @@ const geocoder = NodeGeocoder({
     provider: "openstreetmap"
 });
 
-// Background color
-ctx.fillStyle = "#cccccc";
-ctx.fillRect(0, 0, renderWidth, renderHeight);
-
 // Load map
-
 loadImage("img/Mercator_Projection.png").then(image => {
     /* Sources: 
      * - https://commons.wikimedia.org/wiki/File:Mercator_Projection.svg
@@ -30,7 +25,6 @@ loadImage("img/Mercator_Projection.png").then(image => {
     ctx.drawImage(image, 0, 0, renderWidth, renderHeight);
 
     // Scrape cities from PDF
-    
     fs.readFile("pdf/c2020.txt", "utf8", async (err, data) => {
         if (err) throw err;
 
@@ -40,7 +34,7 @@ loadImage("img/Mercator_Projection.png").then(image => {
         let t = 0
         citiesRaw.forEach(cityName => {
             t++
-            if (t < 1500) {
+            if (t < 500) {
                 if (cities[cityName] != undefined) {
                     cities[cityName]++;
                 } else {
@@ -83,11 +77,12 @@ loadImage("img/Mercator_Projection.png").then(image => {
             const size = pointData[1];
 
             ctx.beginPath();
-            ctx.arc(point[0], point[1], size * (renderWidth / 500), 0, 2 * Math.PI, false);
-            ctx.fillStyle = "#ff5c5c";
+            ctx.arc(point[0], point[1], size * (renderWidth / 750), 0, 2 * Math.PI, false);
+            ctx.fillStyle = "rgba(255, 92, 92, 0.5)"//"#ff5c5c";
             ctx.fill();
         });
 
+        // Save image
         fs.writeFileSync("result/image.png", canvas.toBuffer("image/png"));
         console.log("Done!");
     });
