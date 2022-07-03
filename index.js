@@ -2,9 +2,10 @@ const fs = require("fs");
 const {createCanvas, loadImage} = require("canvas");
 const NodeGeocoder = require("node-geocoder");
 
-// Render dimensions
-const renderWidth = 2560;
+
+const renderWidth = 2560; // Render dimensions
 const renderHeight = 2560;
+const maxEntries = 1500; // Max city entries (out of ~5900)
 
 // Initiate canvas
 const canvas = createCanvas(renderWidth, renderHeight);
@@ -12,7 +13,8 @@ const ctx = canvas.getContext("2d");
 
 // Initiate geocodeer
 const geocoder = NodeGeocoder({
-    provider: "openstreetmap"
+    provider: "opencage",
+    apiKey: await fs.promises.readFile("apikey.txt", "utf8")
 });
 
 // Load map
@@ -29,30 +31,25 @@ loadImage("img/Mercator_Projection.png").then(image => {
         if (err) throw err;
 
         let cities = {};
-        const citiesRaw = data.split(/[•.\r\n]/).filter(s => s.indexOf(",") > -1).map(s => s.slice(1));
-        console.log(citiesRaw.length)
-        let t = 0
+        const citiesRaw = data.split(/[•.\r\n]/).filter(s => s.indexOf(",") > -1).map(s => s.slice(1)).slice(0, maxEntries);
         citiesRaw.forEach(cityName => {
-            t++
-            if (t < 500) {
-                if (cities[cityName] != undefined) {
-                    cities[cityName]++;
-                } else {
-                    cities[cityName] = 1;
-                }
+            if (cities[cityName] != undefined) {
+                cities[cityName]++;
+            } else {
+                cities[cityName] = 1;
             }
         });
-        t = 0
 
         // Convert cities to coords
         let coords = [];
+        let i = 0
         for (const key in cities) {
             let res = await geocoder.geocode(key);
             if (res[0] != undefined) {
                 coords.push([[res[0].latitude, res[0].longitude], cities[key]]);
             }
-            t++
-            console.log(t)
+            i++
+            console.log(i)
         }
 
         // Convert coords to points
